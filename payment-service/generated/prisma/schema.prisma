@@ -1,0 +1,18 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
+
+model Payment {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  amount    Float
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

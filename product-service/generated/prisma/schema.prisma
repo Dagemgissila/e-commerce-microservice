@@ -1,0 +1,18 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  price       Float
+  description String
+  stock       Int
+  createdAt   DateTime @default(now())
+}
