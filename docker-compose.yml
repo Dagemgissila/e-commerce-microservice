@@ -53,8 +53,6 @@ services:
   user-service:
     build: ./user-service
     restart: always
-    ports:
-      - "4000:4000"
     env_file:
       - ./user-service/.env
     depends_on:
@@ -69,8 +67,6 @@ services:
   product-service:
     build: ./product-service
     restart: always
-    ports:
-      - "4001:4001"
     env_file:
       - ./product-service/.env
     depends_on:
@@ -85,8 +81,6 @@ services:
   order-service:
     build: ./order-service
     restart: always
-    ports:
-      - "4002:4002"
     env_file:
       - ./order-service/.env
     depends_on:
@@ -101,8 +95,6 @@ services:
   payment-service:
     build: ./payment-service
     restart: always
-    ports:
-      - "4003:4003"
     env_file:
       - ./payment-service/.env
     depends_on:

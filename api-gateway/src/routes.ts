@@ -18,39 +18,42 @@ const proxyOptions: Options = {
 };
 
 export const setupRoutes = (app: any) => {
-    // USER SERVICE
+    // USER SERVICE: Map /api/users to /api/v1/user
     app.use(
-        "/api/users",
         createProxyMiddleware({
             ...proxyOptions,
             target: process.env.USER_SERVICE,
+            pathFilter: "/api/users",
+            pathRewrite: {
+                "^/api/users": "/api/v1/user",
+            },
         })
     );
 
-    // PRODUCT SERVICE
+    // PRODUCT SERVICE: Map /api/products to /api/products
     app.use(
-        "/api/products",
         createProxyMiddleware({
             ...proxyOptions,
             target: process.env.PRODUCT_SERVICE,
+            pathFilter: "/api/products",
         })
     );
 
-    // ORDER SERVICE
+    // ORDER SERVICE: Map /api/orders to /api/orders
     app.use(
-        "/api/orders",
         createProxyMiddleware({
             ...proxyOptions,
             target: process.env.ORDER_SERVICE,
+            pathFilter: "/api/orders",
         })
     );
 
-    // PAYMENT SERVICE
+    // PAYMENT SERVICE: Map /api/payments to /api/payments
     app.use(
-        "/api/payments",
         createProxyMiddleware({
             ...proxyOptions,
             target: process.env.PAYMENT_SERVICE,
+            pathFilter: "/api/payments",
         })
     );
 };
