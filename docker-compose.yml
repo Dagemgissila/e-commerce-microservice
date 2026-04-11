@@ -113,6 +113,22 @@ services:
       - ecommerce-network
     volumes:
       - ./payment-service/src:/app/src
+  api-gateway:
+    build: ./api-gateway
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./api-gateway/.env
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+      - payment-service
+    networks:
+      - ecommerce-network
+    volumes:
+      - ./api-gateway/src:/app/src
 
 networks:
   ecommerce-network:

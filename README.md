@@ -4,7 +4,8 @@ A production-ready microservices backend built with Node.js, Express, TypeScript
 
 ## System Architecture
 
-The project consists of four core microservices:
+The project consists of five core components:
+0. **API Gateway**: Entry point for all client requests, providing routing, security, and logging.
 1. **User Service**: Handles user registration and authentication.
 2. **Product Service**: Manages product catalog and inventory.
 3. **Order Service**: Orchestrates order creation and management.
@@ -29,17 +30,31 @@ The project consists of four core microservices:
    ```bash
    docker-compose up --build
    ```
-3. The services will be accessible on the following ports:
+3. The services are orchestrated via the API Gateway on port `3000`:
+   - **API Gateway**: `3000` (Main Entry Point)
    - User Service: `4000`
    - Product Service: `4001`
    - Order Service: `4002`
    - Payment Service: `4003`
 
+### Usage
+Clients should interact with the **API Gateway** (`:3000`) which routes requests to the appropriate microservice:
+- `/api/users/*` -> User Service
+- `/api/products/*` -> Product Service
+- `/api/orders/*` -> Order Service
+- `/api/payments/*` -> Payment Service
+
 ---
 
-## API Documentation
+## API Documentation (Gateway - `:3000`)
 
-### User Service (`:4000`)
+### API Gateway Features
+- **Security**: Request filtering and security headers via `helmet`.
+- **Logging**: Request logging via `morgan`.
+- **CORS**: Enabled for cross-origin requests.
+- **Error Handling**: Graceful handling of downstream service failures.
+
+### Routes
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/users/register` | Register a new user |
