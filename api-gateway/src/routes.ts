@@ -1,12 +1,13 @@
 import { createProxyMiddleware, Options } from "http-proxy-middleware";
-import { Request, Response } from "express";
+
+const addInternalHeader = (proxyReq: any) => {
+    proxyReq.setHeader("x-internal-secret", process.env.INTERNAL_SECRET);
+};
 
 const proxyOptions: Options = {
     changeOrigin: true,
     on: {
-        proxyReq: (proxyReq, req, res) => {
-            // Can add headers or logging here if needed
-        },
+        proxyReq: addInternalHeader,
         error: (err, req, res: any) => {
             console.error("Proxy Error:", err);
             res.status(500).json({
