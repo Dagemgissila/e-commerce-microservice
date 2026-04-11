@@ -55,10 +55,8 @@ services:
     restart: always
     ports:
       - "4000:4000"
-    environment:
-      - DATABASE_URL=postgresql://user:password@postgres:5432/user_db?schema=public
-      - KAFKA_BROKER=kafka:9092
-      - REDIS_URL=redis://redis:6379
+    env_file:
+      - ./user-service/.env
     depends_on:
       - postgres
       - kafka
@@ -73,10 +71,8 @@ services:
     restart: always
     ports:
       - "4001:4001"
-    environment:
-      - DATABASE_URL=postgresql://user:password@postgres:5432/product_db?schema=public
-      - KAFKA_BROKER=kafka:9092
-      - REDIS_URL=redis://redis:6379
+    env_file:
+      - ./product-service/.env
     depends_on:
       - postgres
       - kafka
@@ -91,11 +87,8 @@ services:
     restart: always
     ports:
       - "4002:4002"
-    environment:
-      - DATABASE_URL=postgresql://user:password@postgres:5432/order_db?schema=public
-      - KAFKA_BROKER=kafka:9092
-      - REDIS_URL=redis://redis:6379
-      - PRODUCT_SERVICE_URL=http://product-service:4001
+    env_file:
+      - ./order-service/.env
     depends_on:
       - postgres
       - kafka
@@ -110,11 +103,8 @@ services:
     restart: always
     ports:
       - "4003:4003"
-    environment:
-      - DATABASE_URL=postgresql://user:password@postgres:5432/payment_db?schema=public
-      - KAFKA_BROKER=kafka:9092
-      - REDIS_URL=redis://redis:6379
-      - ORDER_SERVICE_URL=http://order-service:4002
+    env_file:
+      - ./payment-service/.env
     depends_on:
       - postgres
       - kafka
