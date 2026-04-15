@@ -1,8 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import { healthRouter } from './routes/health';
-import { userRouter } from './routes/user.routes';
 import { internalAuth } from './middleware/internalAuth';
+import { MainRoutes } from './routes/main.routes';
 
 dotenv.config();
 
@@ -12,6 +12,6 @@ app.use(internalAuth);
 app.use(express.json());
 
 app.use('/health', healthRouter);
-app.use('/api/v1/user', userRouter);
+app.use('/api/users', MainRoutes);
 
 export default app;

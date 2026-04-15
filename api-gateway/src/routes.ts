@@ -1,4 +1,6 @@
-import { createProxyMiddleware, Options } from "http-proxy-middleware";
+import { createProxyMiddleware, Options, fixRequestBody } from "http-proxy-middleware";
+import { authenticate } from "./middleware/authenticate";
+import { authorize } from "./middleware/authorize";
 
 const addInternalHeader = (proxyReq: any) => {
     proxyReq.setHeader("x-internal-secret", process.env.INTERNAL_SECRET);
@@ -7,7 +9,12 @@ const addInternalHeader = (proxyReq: any) => {
 const proxyOptions: Options = {
     changeOrigin: true,
     on: {
-        proxyReq: addInternalHeader,
+        proxyReq: (proxyReq, req, res) => {
+            addInternalHeader(proxyReq);
+            if ((req as any).body) {
+                fixRequestBody(proxyReq, req as any);
+            }
+        },
         error: (err, req, res: any) => {
             console.error("Proxy Error:", err);
             res.status(500).json({
@@ -19,29 +26,56 @@ const proxyOptions: Options = {
 };
 
 export const setupRoutes = (app: any) => {
-    // USER SERVICE: Map /api/users to /api/v1/user
+    // Public: register & login
     app.use(
         createProxyMiddleware({
             ...proxyOptions,
             target: process.env.USER_SERVICE,
             pathFilter: "/api/users",
-            pathRewrite: {
-                "^/api/users": "/api/v1/user",
-            },
         })
     );
 
-    // PRODUCT SERVICE: Map /api/products to /api/products
-    app.use(
+    // Public: GET (browse products)
+    app.get(
+        "/api/products",
         createProxyMiddleware({
             ...proxyOptions,
             target: process.env.PRODUCT_SERVICE,
             pathFilter: "/api/products",
         })
     );
+    app.get(
+        "/api/products/:id",
+        createProxyMiddleware({
+            ...proxyOptions,
+            target: process.env.PRODUCT_SERVICE,
+        })
+    );
 
-    // ORDER SERVICE: Map /api/orders to /api/orders
+    // Protected: create/update (ADMIN or USER), delete (ADMIN only)
+    app.post(
+        "/api/products",
+        authenticate,
+        authorize("ADMIN", "USER"),
+        createProxyMiddleware({ ...proxyOptions, target: process.env.PRODUCT_SERVICE })
+    );
+    app.put(
+        "/api/products/:id",
+        authenticate,
+        authorize("ADMIN", "USER"),
+        createProxyMiddleware({ ...proxyOptions, target: process.env.PRODUCT_SERVICE })
+    );
+    app.delete(
+        "/api/products/:id",
+        authenticate,
+        authorize("ADMIN"),
+        createProxyMiddleware({ ...proxyOptions, target: process.env.PRODUCT_SERVICE })
+    );
+
+    // All order routes require authentication
     app.use(
+        "/api/orders",
+        authenticate,
         createProxyMiddleware({
             ...proxyOptions,
             target: process.env.ORDER_SERVICE,
@@ -49,8 +83,10 @@ export const setupRoutes = (app: any) => {
         })
     );
 
-    // PAYMENT SERVICE: Map /api/payments to /api/payments
+    // All payment routes require authentication
     app.use(
+        "/api/payments",
+        authenticate,
         createProxyMiddleware({
             ...proxyOptions,
             target: process.env.PAYMENT_SERVICE,
