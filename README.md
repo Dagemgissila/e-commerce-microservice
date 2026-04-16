@@ -4,7 +4,7 @@ A production-ready microservices backend built with **Node.js**, **Express**, **
 
 ---
 
-## Architecture Overview
+## 🏗️ Architecture Overview
 
 All client traffic enters the system through **Nginx** (port `80`), which proxies requests to the **API Gateway**. Individual microservices are isolated in an internal Docker network and are **not directly accessible** from the outside.
 
@@ -21,132 +21,122 @@ graph TD
     Orders -- Kafka --> Payments
     Payments -- Kafka --> Orders
     Orders -- HTTP --> Products
+    
+    Products --- Redis[(Redis)]
+    Gateway --- Redis_Limit[(Redis Rate Limit)]
 ```
 
 ---
 
-## Implementation Highlights
+## 🚀 Getting Started
 
-This system is built using a **decoupled, event-driven microservices architecture** focused on scalability and security.
+### 1. Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+- [Node.js](https://nodejs.org/) (optional, for local linting/IDE support)
 
-### 1. Asynchronous Event-Driven Flow
-Instead of hard-linking services with synchronous HTTP calls for every action, we use **Apache Kafka** for core business flows (like order fulfillment):
-- **Order Created**: The Order Service emits an `order_created` event.
-- **Payment Processing**: The Payment Service listens for `order_created`, simulates a payment, and emits `payment_processed`.
-- **Inventory Sync**: The Order and Product services listen for `payment_processed` to either confirm the order or adjust stock.
-
-### 2. Secure Gateway Pattern
-We implement a **Reverse Proxy / API Gateway** pattern using Express and `http-proxy-middleware`:
-- **Centralized Auth**: JWT validation happens at the entry point only.
-- **Header Injection**: The gateway "trusts" the user and injects identity headers (`x-user-id`) before passing the request downstream.
-- **Internal Security**: Downstream services verify an `INTERNAL_SECRET` to ensure the request came from the gateway, not an internal intruder.
-- **Distributed Rate Limiting**: Protects against DoS attacks by limiting each IP to 60 requests per minute using Redis.
-
-### 3. Synchronous Inter-Service Calls
-For actions requiring immediate data (like checking product availability or retrieving categories during order creation), we use **Synchronous HTTP (Axios)**. These calls are secured similarly via internal secrets to maintain a consistent security posture.
-
-### 4. High-Performance Caching
-To reduce database load and minimize latency, the **Product Service** leverages **Redis**:
-- **Read-Aside Caching**: API requests for product lists and details are first checked against Redis.
-- **Categorization Cache**: Filtered product lists (by category) are cached independently.
-- **Proactive Invalidation**: Caches are automatically cleared when products are updated or deleted to ensure data freshness.
-
----
-
-
-This architecture uses **three layers of security**:
-
-1.  **Network Isolation (Docker)**: Microservices are attached to a private internal network (`ecommerce-network`). No service exposes a public port except Nginx.
-2.  **API Gateway Authentication (JWT)**: The Gateway enforces JWT validation for protected routes.
-    *   **Verification**: Verifies `Authorization: Bearer <token>` using `JWT_SECRET`.
-    *   **Identity Forwarding**: Injects `x-user-id` and `x-user-role` headers for downstream services.
-3.  **Shared Internal Secret (`x-internal-secret`)**: Every microservice validates an `x-internal-secret` header injected by the API Gateway to prevent direct internal unauthorized access.
-
----
-
-## API Reference
-
-Base URL: `http://localhost`
-
-### 1. Authentication (User Service)
-| Endpoint | Method | Auth | Description |
-|---|---|---|---|
-| `/api/users/auth/register` | `POST` | No | Register a new user |
-| `/api/users/auth/login` | `POST` | No | Login and receive JWT token |
-
-**Register/Login Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "securepassword"
-}
-```
-
-### 2. Products (Product Service)
-| Endpoint | Method | Auth | Role | Description |
-|---|---|---|---|---|
-| `/api/products` | `GET` | No | Any | List all products (supports `?category=...`) |
-| `/api/products/:id` | `GET` | No | Any | Get product details |
-| `/api/products` | `POST` | Yes | ADMIN/SELLER | Create a product |
-
-**Create Product Body:**
-```json
-{
-  "name": "Luxury Watch",
-  "description": "High-end stainless steel watch",
-  "category": "Electronics",
-  "price": 299.99,
-  "stock": 50
-}
-```
-
-### 3. Orders (Order Service)
-| Endpoint | Method | Auth | Description |
-|---|---|---|---|
-| `/api/orders` | `POST` | Yes | Create a new order |
-| `/api/orders` | `GET` | Yes | List user's orders |
-
-**Create Order Body:**
-```json
-{
-  "productId": "uuid-of-product",
-  "quantity": 1,
-  "userId": "uuid-of-user"
-}
-```
-
-### 4. Payments (Payment Service)
-| Endpoint | Method | Auth | Description |
-|---|---|---|---|
-| `/api/payments` | `GET` | Yes | List payment history |
-
----
-
-## Getting Started
-
-### Setup & Run
-1.  **Environment**: Ensure `.env` files in each service directory have matching `INTERNAL_SECRET` and `JWT_SECRET`.
-2.  **Start Services**:
+### 2. Setup & Run
+1.  **Start Services**:
     ```bash
     docker compose up -d --build
     ```
-
-## Infrastructure Stack
-*   **Entry**: Nginx
-*   **Gateway**: Express Proxy
-*   **Database**: PostgreSQL (Prisma ORM)
-*   **Messaging**: Kafka (Event-driven updates)
-*   **Caching & Rate Limiting**: Redis
+2.  **Database Initiation**:
+    The databases are automatically created. Migrations are applied on startup for most services.
 
 ---
 
-## Technical Operations
+## 💡 Typical Workflow (Step-by-Step)
 
-### Database Migrations
-This project uses **Prisma**. If you modify the `schema.prisma` file in any service:
-1.  Navigate to the service directory (e.g., `cd product-service`).
-2.  Run the migration (use host port `5433` for local DB access):
-    ```bash
-    DATABASE_URL=postgresql://user:password@localhost:5433/product_db?schema=public npx prisma migrate dev --name your_migration_name
-    ```
-3.  The client will automatically regenerate, updating your TypeScript types.
+To test the full system, follow these steps in order:
+
+### Step 1: User Registration
+Create a new account.
+- **Endpoint**: `POST /api/users/auth/register`
+- **Body**: `{ "name": "Dagem", "email": "dagem@example.com", "password": "password123" }`
+
+### Step 2: Login
+Retrieve your JWT tokens to authenticate future requests.
+- **Endpoint**: `POST /api/users/auth/login`
+- **Body**: `{ "email": "dagem@example.com", "password": "password123" }`
+- **Action**: Copy the `accessToken` from the response.
+
+### Step 3: Add a Product (ADMIN/SELLER only)
+Add products to your catalog.
+- **Endpoint**: `POST /api/products`
+- **Header**: `Authorization: Bearer <your_token>`
+- **Body**: `{ "name": "iPhone 15", "description": "Latest Apple phone", "price": 999, "category": "Electronics", "stock": 50 }`
+
+### Step 4: List and Filter Products
+Browse the catalog.
+- **Endpoint**: `GET /api/products?category=Electronics`
+- **Auth**: No auth required for browsing.
+
+### Step 5: Place an Order
+Buy the product. This triggers an asynchronous payment flow via Kafka.
+- **Endpoint**: `POST /api/orders`
+- **Header**: `Authorization: Bearer <your_token>`
+- **Body**: `{ "productId": "<uuid-from-step-3>", "quantity": 1 }`
+
+### Step 6: View Payment Status
+Check if your payment was processed by the automated payment service.
+- **Endpoint**: `GET /api/payments`
+- **Header**: `Authorization: Bearer <your_token>`
+
+---
+
+## 📘 API Reference
+
+### 👤 User Service
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/users/auth/register` | Body: `{ name, email, password }` |
+| `POST` | `/api/users/auth/login` | Body: `{ email, password }`. Returns `{ user, accessToken, refreshToken }` |
+
+### 📦 Product Service
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/products` | No | Optional Query: `?category=...` |
+| `GET` | `/api/products/:id` | No | Get details of a single product |
+| `POST` | `/api/products` | Yes | Body: `{ name, description, price, category, stock }` |
+| `PUT` | `/api/products/:id` | Yes | Update product fields |
+| `DELETE` | `/api/products/:id` | Yes (ADMIN) | Remove product |
+
+### 🛒 Order Service
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/orders` | Yes | Body: `{ productId, quantity }` |
+| `GET` | `/api/orders` | Yes | List all orders with optional `?category=...` |
+| `PUT` | `/api/orders/:id` | No* | Internal: Updates order status (e.g. `PENDING`, `COMPLETED`) |
+
+### 💰 Payment Service
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/payments` | Yes | List all payment events and transaction states |
+| `GET` | `/api/payments/:id` | Yes | Get specific payment details |
+
+---
+
+## 🛡️ Security & Performance
+
+- **Distributed Rate Limiting**: The API Gateway uses **Redis** to limit clients to **60 requests per minute** to protect against brute-force and DoS.
+- **JWT Authorization**: Authenticated routes require a `Bearer` token. Roles (e.g., `ADMIN`) are checked at the Gateway layer.
+- **Internal Security**: Services verify an `x-internal-secret` header to ensure requests only originate from the API Gateway.
+- **Redis Caching**: The Product Service caches catalog data (valid for 60s) to ensure blazing-fast response times.
+
+---
+
+## 🛠️ Technical Operations
+
+### Database Migrations (Prisma)
+If you modify `schema.prisma` in any service:
+```bash
+# Example for Product Service
+cd product-service
+DATABASE_URL=postgresql://user:password@localhost:5433/product_db?schema=public npx prisma migrate dev --name your_migration_name
+```
+
+### Rebuilding After Dependency Changes
+If you add new npm packages:
+```bash
+docker compose build <service-name>
+docker compose up -d <service-name>
+```
