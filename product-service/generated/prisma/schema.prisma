@@ -13,6 +13,7 @@ model Product {
   name        String
   price       Float
   description String
+  category    String   @default("General")
   stock       Int
   createdAt   DateTime @default(now())
 }

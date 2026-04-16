@@ -12,6 +12,7 @@ model Order {
   id        String   @id @default(uuid())
   userId    String
   productId String
+  category  String
   quantity  Int
   total     Float
   status    String   @default("PENDING")

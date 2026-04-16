@@ -20,10 +20,14 @@ export const createOrder = async (data: {
     // 2. Create order
     const order = await prisma.order.create({
         data: {
-            ...data,
+            userId: data.userId,
+            productId: data.productId,
+            quantity: data.quantity,
+            category: product.category,
             total: product.price * data.quantity,
         },
     });
+
 
 
     // 3. Send Kafka event

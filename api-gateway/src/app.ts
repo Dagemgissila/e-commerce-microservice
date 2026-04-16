@@ -5,10 +5,13 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { setupRoutes } from "./routes";
 
+import { globalRateLimiter } from "./middleware/rateLimiter";
+
 dotenv.config();
 
 const app = express();
 
+app.use(globalRateLimiter);
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(cors());

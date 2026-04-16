@@ -7,19 +7,23 @@ export const createProduct = async (data: any) => {
     return product;
 };
 
-export const getAllProducts = async () => {
-    const cached = await redis.get("products");
+export const getAllProducts = async (category?: string) => {
+    const cacheKey = category ? `products:cat:${category}` : "products";
+    const cached = await redis.get(cacheKey);
 
     if (cached) {
-        console.log("CACHE HIT - ALL PRODUCTS");
+        console.log(`CACHE HIT - ${cacheKey}`);
         return JSON.parse(cached);
     }
 
-    console.log("CACHE MISS - DB HIT");
+    console.log(`CACHE MISS - DB HIT for ${cacheKey}`);
 
-    const products = await prisma.product.findMany();
+    const products = await prisma.product.findMany({
+        where: category ? { category } : {},
+        orderBy: { category: "asc" },
+    });
 
-    await redis.set("products", JSON.stringify(products), "EX", 60);
+    await redis.set(cacheKey, JSON.stringify(products), "EX", 60);
 
     return products;
 };

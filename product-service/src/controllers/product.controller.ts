@@ -7,7 +7,8 @@ export const create = async (req: Request, res: Response) => {
 };
 
 export const getAll = async (req: Request, res: Response) => {
-    const products = await productService.getAllProducts();
+    const { category } = req.query;
+    const products = await productService.getAllProducts(category as string);
     res.json(products);
 };
 

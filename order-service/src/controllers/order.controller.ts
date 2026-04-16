@@ -11,6 +11,16 @@ export const create = async (req: Request, res: Response) => {
     }
 };
 
+export const getAll = async (req: Request, res: Response) => {
+    const { category } = req.query;
+    const orders = await prisma.order.findMany({
+        where: category ? { category: category as string } : {},
+        orderBy: { category: "asc" },
+    });
+    res.json(orders);
+};
+
+
 export const updateStatus = async (req: Request, res: Response) => {
     const { status } = req.body;
 

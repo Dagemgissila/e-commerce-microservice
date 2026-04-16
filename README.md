@@ -40,9 +40,16 @@ We implement a **Reverse Proxy / API Gateway** pattern using Express and `http-p
 - **Centralized Auth**: JWT validation happens at the entry point only.
 - **Header Injection**: The gateway "trusts" the user and injects identity headers (`x-user-id`) before passing the request downstream.
 - **Internal Security**: Downstream services verify an `INTERNAL_SECRET` to ensure the request came from the gateway, not an internal intruder.
+- **Distributed Rate Limiting**: Protects against DoS attacks by limiting each IP to 60 requests per minute using Redis.
 
 ### 3. Synchronous Inter-Service Calls
-For actions requiring immediate data (like checking product availability during order creation), we use **Synchronous HTTP (Axios)**. These calls are secured similarly via internal secrets to maintain a consistent security posture.
+For actions requiring immediate data (like checking product availability or retrieving categories during order creation), we use **Synchronous HTTP (Axios)**. These calls are secured similarly via internal secrets to maintain a consistent security posture.
+
+### 4. High-Performance Caching
+To reduce database load and minimize latency, the **Product Service** leverages **Redis**:
+- **Read-Aside Caching**: API requests for product lists and details are first checked against Redis.
+- **Categorization Cache**: Filtered product lists (by category) are cached independently.
+- **Proactive Invalidation**: Caches are automatically cleared when products are updated or deleted to ensure data freshness.
 
 ---
 
@@ -78,7 +85,7 @@ Base URL: `http://localhost`
 ### 2. Products (Product Service)
 | Endpoint | Method | Auth | Role | Description |
 |---|---|---|---|---|
-| `/api/products` | `GET` | No | Any | List all products |
+| `/api/products` | `GET` | No | Any | List all products (supports `?category=...`) |
 | `/api/products/:id` | `GET` | No | Any | Get product details |
 | `/api/products` | `POST` | Yes | ADMIN/SELLER | Create a product |
 
@@ -87,6 +94,7 @@ Base URL: `http://localhost`
 {
   "name": "Luxury Watch",
   "description": "High-end stainless steel watch",
+  "category": "Electronics",
   "price": 299.99,
   "stock": 50
 }
@@ -128,4 +136,17 @@ Base URL: `http://localhost`
 *   **Gateway**: Express Proxy
 *   **Database**: PostgreSQL (Prisma ORM)
 *   **Messaging**: Kafka (Event-driven updates)
-*   **Caching**: Redis
+*   **Caching & Rate Limiting**: Redis
+
+---
+
+## Technical Operations
+
+### Database Migrations
+This project uses **Prisma**. If you modify the `schema.prisma` file in any service:
+1.  Navigate to the service directory (e.g., `cd product-service`).
+2.  Run the migration (use host port `5433` for local DB access):
+    ```bash
+    DATABASE_URL=postgresql://user:password@localhost:5433/product_db?schema=public npx prisma migrate dev --name your_migration_name
+    ```
+3.  The client will automatically regenerate, updating your TypeScript types.

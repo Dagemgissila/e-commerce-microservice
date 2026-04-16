@@ -1,4 +1,5 @@
 import { consumer, producer } from "../config/kafka";
+import { prisma } from "../../lib/prisma";
 
 export const startPaymentConsumer = async () => {
     await consumer.connect();
@@ -17,43 +18,44 @@ export const startPaymentConsumer = async () => {
             console.log("Processing payment for order:", order.id);
 
             try {
-                // simulate payment logic
-                const success = true;
+                // 1. Create a "PENDING" payment record
+                const payment = await prisma.payment.create({
+                    data: {
+                        orderId: order.id,
+                        amount: order.total,
+                        status: "PENDING",
+                    },
+                });
 
-                if (success) {
-                    await producer.send({
-                        topic: "payment_processed",
-                        messages: [
-                            {
-                                value: JSON.stringify({
-                                    orderId: order.id,
-                                    productId: order.productId,
-                                    quantity: order.quantity,
-                                    status: "PAID",
-                                }),
-                            },
-                        ],
-                    })
+                // 2. Simulate payment logic (e.g., call external gateway)
+                const success = true; // In real world, logic goes here
 
-                    console.log("Payment successful");
-                } else {
-                    await producer.send({
-                        topic: "payment_processed",
-                        messages: [
-                            {
-                                value: JSON.stringify({
-                                    orderId: order.id,
-                                    productId: order.productId,
-                                    quantity: order.quantity,
-                                    status: "FAILED",
-                                }),
-                            },
-                        ],
-                    });
-                    console.log("Payment failed");
-                }
+                const finalStatus = success ? "PAID" : "FAILED";
+
+                // 3. Update payment record
+                await prisma.payment.update({
+                    where: { id: payment.id },
+                    data: { status: finalStatus },
+                });
+
+                // 4. Send Kafka event
+                await producer.send({
+                    topic: "payment_processed",
+                    messages: [
+                        {
+                            value: JSON.stringify({
+                                orderId: order.id,
+                                productId: order.productId,
+                                quantity: order.quantity,
+                                status: finalStatus,
+                            }),
+                        },
+                    ],
+                });
+
+                console.log(`Payment ${finalStatus} for order ${order.id}`);
             } catch (error) {
-                console.error("Payment failed:", error);
+                console.error("Payment processing error:", error);
             }
         },
     });

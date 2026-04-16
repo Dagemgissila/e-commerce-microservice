@@ -9,8 +9,8 @@ generator client {
 }
 
 model Payment {
-  id        Int      @id @default(autoincrement())
-  orderId   Int
+  id        String   @id @default(uuid())
+  orderId   String
   amount    Float
   status    String   @default("PENDING")
   createdAt DateTime @default(now())

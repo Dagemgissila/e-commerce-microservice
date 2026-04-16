@@ -9,10 +9,11 @@ generator client {
 }
 
 model Product {
-  id          String @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   price       Float
   description String
+  category    String   @default("General")
   stock       Int
   createdAt   DateTime @default(now())
 }
