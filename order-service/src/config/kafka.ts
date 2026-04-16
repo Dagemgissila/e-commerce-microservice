@@ -9,6 +9,10 @@ export const producer = kafka.producer({
     createPartitioner: Partitioners.LegacyPartitioner
 });
 
+export const consumer = kafka.consumer({
+    groupId: "order-group"
+});
+
 export const connectProducer = async () => {
     let connected = false;
     while (!connected) {
@@ -25,7 +29,7 @@ export const connectProducer = async () => {
                 topics: [
                     {
                         topic: "order_created",
-                        numPartitions: 1,
+                        numPartitions: 3,
                         replicationFactor: 1,
                     },
                 ],

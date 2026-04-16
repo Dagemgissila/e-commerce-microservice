@@ -1,5 +1,4 @@
-import { consumer } from "../config/kafka";
-import { updateOrderStatus } from "../utils/orderClient";
+import { consumer, producer } from "../config/kafka";
 
 export const startPaymentConsumer = async () => {
     await consumer.connect();
@@ -22,10 +21,36 @@ export const startPaymentConsumer = async () => {
                 const success = true;
 
                 if (success) {
-                    await updateOrderStatus(order.id, "PAID");
+                    await producer.send({
+                        topic: "payment_processed",
+                        messages: [
+                            {
+                                value: JSON.stringify({
+                                    orderId: order.id,
+                                    productId: order.productId,
+                                    quantity: order.quantity,
+                                    status: "PAID",
+                                }),
+                            },
+                        ],
+                    })
+
                     console.log("Payment successful");
                 } else {
-                    await updateOrderStatus(order.id, "FAILED");
+                    await producer.send({
+                        topic: "payment_processed",
+                        messages: [
+                            {
+                                value: JSON.stringify({
+                                    orderId: order.id,
+                                    productId: order.productId,
+                                    quantity: order.quantity,
+                                    status: "FAILED",
+                                }),
+                            },
+                        ],
+                    });
+                    console.log("Payment failed");
                 }
             } catch (error) {
                 console.error("Payment failed:", error);
